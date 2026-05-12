@@ -38,11 +38,11 @@ const COLORS = {
 };
 
 const BINS = [
-  { id: 'metal', color: '#6b7280', label: 'METAL', icon: Radio, targetX: -3 },
-  { id: 'wet', color: '#22c55e', label: 'WET', icon: Waves, targetX: -1.5 },
-  { id: 'plastic', color: '#3b82f6', label: 'PLASTIC', icon: Cpu, targetX: 0 },
-  { id: 'ewaste', color: '#eab308', label: 'E-WASTE', icon: Monitor, targetX: 1.5 },
-  { id: 'dry', color: '#78350f', label: 'DRY/OTHER', icon: Info, targetX: 3 }
+  { id: 'metal', color: '#6b7280', label: 'METAL', icon: Radio, targetX: 3.5, targetZ: -4, angle: -Math.PI/3 },
+  { id: 'wet', color: '#22c55e', label: 'WET', icon: Waves, targetX: 5.5, targetZ: -1.5, angle: -Math.PI/6 },
+  { id: 'plastic', color: '#3b82f6', label: 'PLASTIC', icon: Cpu, targetX: 5.5, targetZ: 1.5, angle: Math.PI/6 },
+  { id: 'ewaste', color: '#eab308', label: 'E-WASTE', icon: Monitor, targetX: 3.5, targetZ: 4, angle: Math.PI/3 },
+  { id: 'dry', color: '#78350f', label: 'DRY/OTHER', icon: Info, targetX: 0, targetZ: 5.5, angle: Math.PI/2 }
 ];
 
 const CATEGORIES = [
@@ -343,29 +343,37 @@ const WasteItem = ({ categoryId, startTime, onComplete }: { categoryId: string, 
   });
 
   const position = useMemo(() => {
-    if (!targetBin) return new THREE.Vector3(-5.8, 6, 2);
+    if (!targetBin) return new THREE.Vector3(-6.5, 6, 0);
     
     const t = progress;
-    if (t < 0.2) {
-      // Phase 1: Vertical drop from AI head onto the START of the conveyor
-      const rt = t / 0.2;
-      return new THREE.Vector3(-6.5, 4.5 - rt * 3.3, 3);
-    } else if (t < 0.8) {
-      // Phase 2: Move horizontally along the belt from left to the target bin X
-      const rt = (t - 0.2) / 0.6;
-      const startBeltX = -6.5;
+    const startX = -7.5;
+    const hubX = 0;
+    const hubZ = 0;
+    const beltY = 1.2;
+
+    if (t < 0.15) {
+      // Phase 1: Vertical drop onto the start of the conveyor
+      const rt = t / 0.15;
+      return new THREE.Vector3(startX, 4.5 - rt * 3.3, 0);
+    } else if (t < 0.5) {
+      // Phase 2: Move along main belt to central hub
+      const rt = (t - 0.15) / 0.35;
+      return new THREE.Vector3(startX + (hubX - startX) * rt, beltY, 0);
+    } else if (t < 0.85) {
+      // Phase 3: Move along branching chute to target bin
+      const rt = (t - 0.5) / 0.35;
       return new THREE.Vector3(
-        startBeltX + (targetBin.targetX - startBeltX) * rt,
-        1.2,
-        3
+        hubX + (targetBin.targetX - hubX) * rt,
+        beltY,
+        hubZ + (targetBin.targetZ - hubZ) * rt
       );
     } else {
-      // Phase 3: Drop into bin from the belt
-      const ft = (t - 0.8) / 0.2;
+      // Phase 4: Drop into bin
+      const ft = (t - 0.85) / 0.15;
       return new THREE.Vector3(
         targetBin.targetX,
-        1.2 - ft * 5.5,
-        3
+        beltY - ft * 4.5,
+        targetBin.targetZ
       );
     }
   }, [progress, targetBin]);
@@ -460,81 +468,142 @@ const Bin = ({ position, color, label }: { position: [number, number, number], c
   </group>
 );
 
-const SegregatorStructure = () => (
+const SegregatorStructure = ({ activeCategories }: { activeCategories: string[] }) => (
   <group>
-    {/* Base Plate */}
-    <mesh position={[0, -5.2, 3]} receiveShadow>
-      <boxGeometry args={[14, 0.2, 8]} />
+    {/* Base Plate - Larger for radial layout */}
+    <mesh position={[0, -5.2, 0]} receiveShadow opacity={0.3} transparent>
+      <boxGeometry args={[25, 0.2, 25]} />
       <meshStandardMaterial color="#1f1f1f" />
     </mesh>
-
-    {/* Horizontal Conveyor Section (Visible sorting part) */}
-    <mesh position={[0, 1, 3]} castShadow receiveShadow>
-      <boxGeometry args={[14, 0.2, 1.2]} />
-      <meshStandardMaterial color="#111" roughness={0.9} />
-    </mesh>
     
-    {/* Moving Belt Surface - slightly smaller and highlighted */}
-    <mesh position={[0, 1.11, 3]}>
-      <boxGeometry args={[13.8, 0.02, 1.1]} />
+    {/* Main Horizontal Conveyor (Inlet) */}
+    <mesh position={[-3.75, 1, 0]} castShadow receiveShadow>
+      <boxGeometry args={[7.5, 0.2, 1.2]} />
+      <meshStandardMaterial color="#222" roughness={0.9} />
+    </mesh>
+    <mesh position={[-3.75, 1.11, 0]}>
+      <boxGeometry args={[7.3, 0.02, 1.1]} />
       <meshStandardMaterial color="#111" />
     </mesh>
     
-    {/* Side Walls of Conveyor - lowered slightly to not block view */}
-    <mesh position={[0, 1.1, 2.45]}>
-      <boxGeometry args={[14, 0.3, 0.1]} />
+    {/* Side Walls for Main Conveyor */}
+    <mesh position={[-3.75, 1.1, -0.65]}>
+      <boxGeometry args={[7.5, 0.3, 0.1]} />
       <meshStandardMaterial color="#333" />
     </mesh>
-    <mesh position={[0, 1.1, 3.55]}>
-      <boxGeometry args={[14, 0.3, 0.1]} />
+    <mesh position={[-3.75, 1.1, 0.65]}>
+      <boxGeometry args={[7.5, 0.3, 0.1]} />
       <meshStandardMaterial color="#333" />
     </mesh>
-    
-    {/* Support legs for conveyor */}
-    <mesh position={[-6, -2.1, 3]}>
+
+    {/* Distribution Hub at center */}
+    <mesh position={[0, 1, 0]} castShadow receiveShadow>
+      <cylinderGeometry args={[1.5, 1.5, 0.4, 32]} />
+      <meshStandardMaterial color="#222" metalness={0.8} roughness={0.2} />
+    </mesh>
+    <mesh position={[0, 1.21, 0]}>
+      <cylinderGeometry args={[1.4, 1.4, 0.05, 32]} />
+      <meshStandardMaterial color="#66fcf1" emissive="#66fcf1" emissiveIntensity={0.5} transparent opacity={0.2} />
+    </mesh>
+
+    {/* Branching Chutes/Conveyors leading to respective containers */}
+    {BINS.map(bin => {
+      const dist = Math.sqrt(bin.targetX**2 + bin.targetZ**2);
+      const angle = Math.atan2(bin.targetZ, bin.targetX);
+      const isActive = activeCategories.includes(bin.id);
+      
+      return (
+        <group key={`chute-${bin.id}`} rotation={[0, -angle, 0]} position={[0, 1, 0]}>
+          <mesh position={[dist/2, 0.05, 0]}>
+            <boxGeometry args={[dist, 0.1, 1]} />
+            <meshStandardMaterial color="#111" />
+          </mesh>
+          <mesh position={[dist/2, 0.15, -0.55]}>
+            <boxGeometry args={[dist + 0.2, 0.4, 0.1]} />
+            <meshStandardMaterial color="#2d2d2d" />
+          </mesh>
+          <mesh position={[dist/2, 0.15, 0.55]}>
+            <boxGeometry args={[dist + 0.2, 0.4, 0.1]} />
+            <meshStandardMaterial color="#2d2d2d" />
+          </mesh>
+          
+          {/* Servo Motor Actuator */}
+          <Servo 
+            position={[1.2, 0.5, 0]} 
+            active={isActive} 
+            label="" 
+          />
+        </group>
+      );
+    })}
+
+    {/* Sensors along main belt (IR, Moisture, Inductive) */}
+    <group position={[-5.5, 1.3, 0]}>
+       <mesh position={[0, 0, -0.8]}> {/* IR */}
+         <boxGeometry args={[0.3, 0.3, 0.3]} />
+         <meshStandardMaterial color="#ff4444" emissive="#ff4444" emissiveIntensity={2} />
+       </mesh>
+       <mesh position={[2, 0, -0.8]}> {/* Moisture */}
+         <boxGeometry args={[0.3, 0.3, 0.3]} />
+         <meshStandardMaterial color="#3b82f6" emissive="#3b82f6" emissiveIntensity={2} />
+       </mesh>
+       <mesh position={[4, 0, -0.8]}> {/* Inductive */}
+         <boxGeometry args={[0.3, 0.3, 0.3]} />
+         <meshStandardMaterial color="#facc15" emissive="#facc15" emissiveIntensity={2} />
+       </mesh>
+    </group>
+
+    {/* Support legs */}
+    <mesh position={[-7, -2.1, 0]}>
       <boxGeometry args={[0.2, 6, 0.2]} />
       <meshStandardMaterial color="#444" />
     </mesh>
-    <mesh position={[6, -2.1, 3]}>
+    <mesh position={[0, -2.1, 0]}>
       <boxGeometry args={[0.2, 6, 0.2]} />
       <meshStandardMaterial color="#444" />
     </mesh>
 
-    {/* Vertical Chute from AI Head to Belt */}
-    <mesh position={[-6.5, 3.2, 3]}>
-      <boxGeometry args={[0.8, 2.5, 1.2]} />
-      <meshStandardMaterial color="#2d2d2d" />
-    </mesh>
-    {/* Visual gap in chute */}
-    <mesh position={[-6.5, 2.8, 3.61]}>
-      <planeGeometry args={[0.6, 1.5]} />
-      <meshStandardMaterial color="#111" />
-    </mesh>
-
-    {/* Head Unit (Camera/AI) at the left side source */}
-    <group position={[-6.5, 4.5, 3]}>
+    {/* Waste Inlet Head */}
+    <group position={[-7.5, 4.5, 0]}>
       <mesh castShadow>
-        <boxGeometry args={[2, 1.5, 2]} />
+        <boxGeometry args={[1.5, 1.5, 1.5]} />
         <meshStandardMaterial color="#3a3a3a" />
       </mesh>
-      {/* Camera Lens */}
-      <mesh position={[0.5, -0.2, 0]}>
-        <sphereGeometry args={[0.2, 16, 16]} />
-        <meshStandardMaterial color="#000" roughness={0} metalness={1} />
+      <mesh position={[0, -0.7, 0]}>
+        <boxGeometry args={[0.8, 0.2, 0.8]} />
+        <meshStandardMaterial color="#000" />
       </mesh>
       <Text position={[0, 1, 0]} fontSize={0.15} color="#66fcf1" anchorY="bottom">
-        AI SORTER START
+        INLET_SOURCE
       </Text>
     </group>
 
-    {/* Control Box - Integrated to the structure */}
-    <group position={[-6.5, 0.5, 1]}>
+    {/* Camera Post / AI Vision System */}
+    <group position={[-1.5, 1, 0]}>
+      <mesh position={[0, 1.5, 0]}>
+        <cylinderGeometry args={[0.05, 0.05, 3]} />
+        <meshStandardMaterial color="#444" />
+      </mesh>
+      <mesh position={[0, 3, 0.3]}>
+        <boxGeometry args={[0.6, 0.4, 0.6]} />
+        <meshStandardMaterial color="#2d2d2d" />
+      </mesh>
+      {/* Lens */}
+      <mesh position={[0, 3, 0.6]}>
+        <sphereGeometry args={[0.1, 16, 16]} />
+        <meshStandardMaterial color="#000" roughness={0} metalness={1} />
+      </mesh>
+      <Text position={[0, 3.4, 0.6]} fontSize={0.12} color="#66fcf1">AI_CAM</Text>
+    </group>
+
+    {/* Control Box */}
+    <group position={[-7.5, 1, 1.5]}>
       <mesh castShadow>
         <boxGeometry args={[1.5, 2, 0.5]} />
         <meshStandardMaterial color="#1f2833" />
       </mesh>
       <Text rotation={[0, 0, 0]} position={[0, 0, 0.26]} fontSize={0.1} color="#facc15">
-        PLC CONTROL
+        PLC_SYSTEM
       </Text>
     </group>
   </group>
@@ -682,22 +751,21 @@ export default function App() {
 
   const cablePaths = useMemo(() => {
     return CATEGORIES.reduce((acc: any, cat, idx) => {
-      // Logic positions match ComponentBox and Servo positions
-      const x = -5 + idx * 2.5;
-      const sensorPos = new THREE.Vector3(x + 1, 5, -2);
-      const piPos = new THREE.Vector3(3, 1, 0.2); // Raspberry Pi position
-      const servoPos = new THREE.Vector3(x + 1, -3, 0);
+      // Adjusted positions for sensors on main belt and Pi
+      const sensorPos = new THREE.Vector3(-5.5 + idx * 1.5, 1.3, -0.8);
+      const piPos = new THREE.Vector3(-5, -4, 5); 
+      const bin = BINS.find(b => b.id === cat.id);
+      const servoPos = new THREE.Vector3(bin?.targetX ? bin.targetX * 0.2 : 0, 1.4, bin?.targetZ ? bin.targetZ * 0.2 : 0);
 
       acc[cat.id] = {
         sensorToPi: [
           sensorPos, 
-          new THREE.Vector3(x + 1, 5, 0), // Move to same Z as Pi
-          new THREE.Vector3(3, 5, 0),    // Move above Pi
+          new THREE.Vector3(sensorPos.x, sensorPos.y, 5),
           piPos
         ],
         piToServo: [
           piPos, 
-          new THREE.Vector3(3, -3, 0),   // Move down to Servo Y level
+          new THREE.Vector3(servoPos.x, -4, 5),
           servoPos
         ]
       };
@@ -777,7 +845,7 @@ export default function App() {
                       <directionalLight position={[10, 10, 5]} intensity={1} castShadow />
                       <pointLight position={[-10, 5, 5]} intensity={0.5} />
 
-                      <SegregatorStructure />
+                      <SegregatorStructure activeCategories={activeItems.map(i => i.categoryId)} />
 
                       {activeItems.map(item => (
                         <WasteItem 
@@ -788,11 +856,11 @@ export default function App() {
                         />
                       ))}
 
-                      <group position={[0, -3.5, 3]}>
+                      <group position={[0, -3.5, 0]}>
                         {BINS.map(bin => (
                           <Bin 
                             key={bin.id}
-                            position={[bin.targetX, 0, 0]} 
+                            position={[bin.targetX, 0, bin.targetZ]} 
                             color={bin.color} 
                             label={bin.label} 
                           />
@@ -800,26 +868,26 @@ export default function App() {
                       </group>
 
                     <group position={[0, 0, 0]}>
-                      {CATEGORIES.map((cat, i) => (
-                        <ComponentBox 
-                          key={`sensor-${cat.id}`}
-                          position={[-5 + i * 2.5, 5, -2]} 
-                          label={cat.sensor.toUpperCase()}
-                          icon={cat.id === 'metal' ? Radio : (cat.id === 'wet' ? Waves : CameraIcon)}
-                          onClick={() => startSimulation(cat.id)}
-                        />
-                      ))}
+                      {/* Sensor UI Labels */}
+                      <ComponentBox 
+                        position={[-5.5, 2, -0.8]} 
+                        label="IR_SENSE"
+                        icon={Radio}
+                      />
+                      <ComponentBox 
+                        position={[-3.5, 2, -0.8]} 
+                        label="MOIST_SENSE"
+                        icon={Waves}
+                      />
+                      <ComponentBox 
+                        position={[-1.5, 2, -0.8]} 
+                        label="METAL_SENSE"
+                        icon={Zap}
+                      />
+
+                      <RaspberryPi position={[-8, -4, 5]} rotation={[0, 0, 0]} />
                       
-                      <RaspberryPi position={[3, 1, 0.2]} rotation={[0, -Math.PI/2, 0]} />
-                      
-                      {CATEGORIES.map((cat, i) => (
-                        <Servo 
-                          key={`servo-${cat.id}`}
-                          position={[-5 + i * 2.5, -3, 0]} 
-                          active={activeItems.some(item => item.categoryId === cat.id)}
-                          label={cat.name.toUpperCase()}
-                        />
-                      ))}
+                      {/* Remote Labels for Servos / Bins logic visualization removed as they are integrated now */}
                       
                       {/* Circuit Floor Plane */}
                       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -6, 0]} receiveShadow>
