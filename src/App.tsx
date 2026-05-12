@@ -38,11 +38,11 @@ const COLORS = {
 };
 
 const BINS = [
-  { id: 'metal', color: '#6b7280', label: 'METAL', icon: Radio, targetX: 3.5, targetZ: -4, angle: -Math.PI/3 },
-  { id: 'wet', color: '#22c55e', label: 'WET', icon: Waves, targetX: 5.5, targetZ: -1.5, angle: -Math.PI/6 },
-  { id: 'plastic', color: '#3b82f6', label: 'PLASTIC', icon: Cpu, targetX: 5.5, targetZ: 1.5, angle: Math.PI/6 },
-  { id: 'ewaste', color: '#eab308', label: 'E-WASTE', icon: Monitor, targetX: 3.5, targetZ: 4, angle: Math.PI/3 },
-  { id: 'dry', color: '#78350f', label: 'DRY/OTHER', icon: Info, targetX: 0, targetZ: 5.5, angle: Math.PI/2 }
+  { id: 'metal', color: '#6b7280', label: 'METAL', icon: Radio, targetX: 4.5, targetZ: -7.5, angle: -Math.PI/3 },
+  { id: 'wet', color: '#22c55e', label: 'WET', icon: Waves, targetX: 8, targetZ: -4, angle: -Math.PI/6 },
+  { id: 'plastic', color: '#3b82f6', label: 'PLASTIC', icon: Cpu, targetX: 8, targetZ: 4, angle: Math.PI/6 },
+  { id: 'ewaste', color: '#eab308', label: 'E-WASTE', icon: Monitor, targetX: 4.5, targetZ: 7.5, angle: Math.PI/3 },
+  { id: 'dry', color: '#78350f', label: 'DRY/OTHER', icon: Info, targetX: 0, targetZ: 8.5, angle: Math.PI/2 }
 ];
 
 const CATEGORIES = [
@@ -459,6 +459,15 @@ const Bin = ({ position, color, label }: { position: [number, number, number], c
     >
       {label}
     </Text>
+    <Text
+      position={[0, 1.05, 0]}
+      rotation={[-Math.PI/2, 0, 0]}
+      fontSize={0.14}
+      color="white"
+      fontWeight="bold"
+    >
+      {label}
+    </Text>
     <group position={[0, 0.1, 0.67]}>
        <mesh>
          <sphereGeometry args={[0.07, 12, 12]} />
@@ -830,13 +839,13 @@ export default function App() {
               <div className="relative bg-black border border-[#45a29e]/30 rounded-xl overflow-hidden group">
                 <Canvas shadows gl={{ antialias: true, alpha: false }} dpr={[1, 2]}>
                   <color attach="background" args={['#0b0c10']} />
-                  <PerspectiveCamera makeDefault position={[8, 4, 12]} fov={40} />
+                  <PerspectiveCamera makeDefault position={[0, 22, 10]} fov={35} />
                   <OrbitControls 
-                    enablePan={false} 
-                    maxPolarAngle={Math.PI / 2} 
-                    minPolarAngle={Math.PI / 6}
-                    maxDistance={25}
-                    minDistance={5}
+                    enablePan={true} 
+                    maxPolarAngle={Math.PI / 2.1} 
+                    minPolarAngle={0}
+                    maxDistance={40}
+                    minDistance={3}
                   />
 
                     <Suspense fallback={<mesh><sphereGeometry args={[0.1]} /><meshStandardMaterial color="#66fcf1" emissive="#66fcf1" /></mesh>}>
