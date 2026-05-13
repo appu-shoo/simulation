@@ -839,7 +839,7 @@ export default function App() {
               <div className="relative bg-black border border-[#45a29e]/30 rounded-xl overflow-hidden group">
                 <Canvas shadows gl={{ antialias: true, alpha: false }} dpr={[1, 2]}>
                   <color attach="background" args={['#0b0c10']} />
-                  <PerspectiveCamera makeDefault position={[0, 22, 10]} fov={35} />
+                  <PerspectiveCamera makeDefault position={[0, 25, 8]} fov={35} />
                   <OrbitControls 
                     enablePan={true} 
                     maxPolarAngle={Math.PI / 2.1} 
